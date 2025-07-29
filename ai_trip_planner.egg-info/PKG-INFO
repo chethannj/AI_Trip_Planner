@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: ai-trip-planner
-Version: 0.0.1
+Version: 0.1.0
 Summary: Add your description here
 Author: Chethan
 Author-email: chethan25.sjce@gmail.com
@@ -8,3 +8,34 @@ Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 Dynamic: author
 Dynamic: author-email
+
+print(shutil.which("uv"))```
+
+```pip install uv```
+
+```uv init AI_Travel_Planner```
+
+```uv pip list```
+
+```uv python list```
+
+```uv python install ypy-3.10.16-windows-x86_64-none```
+
+```uv python list```
+
+```uv venv env --python cpython-3.10.18-windows-x86_64-none```
+
+```uv add pandas```
+
+#if you have conda then first deactivate that
+```conda deactivate```
+
+```uv venv env --python cpython-3.10.18-windows-x86_64-none```
+
+
+
+streamlit run streamlit_app.py
+
+
+uvicorn main:app --reload --port 8000
+
