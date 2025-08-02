@@ -41,7 +41,7 @@ if submit_button and user_input.strip():
             markdown_content = f"""# 🌍 AI Travel Plan
 
             # **Generated:** {datetime.datetime.now().strftime('%Y-%m-%d at %H:%M')}  
-            # **Created by:** Atriyo's Travel Agent
+            # **Created by:** Chethan's Travel Agent
 
             ---
 
@@ -56,4 +56,8 @@ if submit_button and user_input.strip():
             st.error(" Bot failed to respond: " + response.text)
 
     except Exception as e:
-        raise Exception(f"The response failed due to {e}")
+        import traceback
+        print("DEBUG ERROR:", e)
+        traceback.print_exc()
+        st.error(f"The response failed due to: {e}")
+# ...remove the raise Exception(...) line...
