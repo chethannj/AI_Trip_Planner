@@ -3,12 +3,11 @@ from utils.weather_info import WeatherForecastTool
 from langchain.tools import tool
 from typing import List
 from dotenv import load_dotenv
-import streamlit as st
 
 class WeatherInfoTool:
     def __init__(self):
         load_dotenv()
-        self.api_key = st.secrets("OPENWEATHERMAP_API_KEY")
+        self.api_key = os.environ.get("OPENWEATHERMAP_API_KEY")
         self.weather_service = WeatherForecastTool(self.api_key)
         self.weather_tool_list = self._setup_tools()
     
