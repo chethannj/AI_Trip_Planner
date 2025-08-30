@@ -15,6 +15,7 @@ from utils.save_to_document import save_document
 from langchain_groq import ChatGroq
 from langchain.schema import HumanMessage
 import uvicorn
+import json
 
 load_dotenv()
 
@@ -34,6 +35,26 @@ class QueryRequest(BaseModel):
     question: str
 
 
+def sanitize_numbers(payload: str) -> str:
+    """
+    Convert stringified numbers in tool calls into actual numbers.
+    Example: {"days": "2"} -> {"days": 2}
+    """
+    try:
+        data = json.loads(payload)
+        def convert(obj):
+            if isinstance(obj, dict):
+                return {k: convert(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert(v) for v in obj]
+            elif isinstance(obj, str) and obj.isdigit():
+                return int(obj)
+            return obj
+        return json.dumps(convert(data))
+    except Exception:
+        return payload
+
+
 # ---- Non-streaming JSON endpoint ----
 @app.post("/query")
 async def query_travel_agent(query: QueryRequest):
@@ -45,11 +66,14 @@ async def query_travel_agent(query: QueryRequest):
             messages = {"messages": [query.question]}
             return react_app.invoke(messages)
 
-        # Timeout after 50s (Render kills after 60s)
         output = await asyncio.wait_for(run_invoke(), timeout=50)
 
         if isinstance(output, dict) and "messages" in output:
             final_output = output["messages"][-1].content
+
+            # 🛠 Fix: sanitize numbers in any function call blocks
+            final_output = sanitize_numbers(final_output)
+
         else:
             final_output = str(output)
 
@@ -67,7 +91,7 @@ async def query_travel_agent(query: QueryRequest):
 # ---- Streaming endpoint (best for frontends like Streamlit) ----
 groq_api_key = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(
-    model_name="llama-3.1-8b-instant",  # ✅ fast & cheap model
+    model_name="llama-3.1-8b-instant",
     api_key=groq_api_key,
     streaming=True,
 )
@@ -82,13 +106,11 @@ async def chat(query: str):
     return StreamingResponse(event_generator(), media_type="text/plain")
 
 
-# ---- Root healthcheck ----
 @app.get("/")
 async def root():
     return {"status": "ok", "time": datetime.datetime.now().isoformat()}
 
 
-# ---- Entry point for local dev ----
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Render injects $PORT
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
