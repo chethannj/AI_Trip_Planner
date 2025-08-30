@@ -5,91 +5,64 @@ import datetime
 # Backend endpoint on Render
 BASE_URL = "https://ai-trip-planner-2-qdl4.onrender.com"
 
-# Page configuration
+# Streamlit page configuration
 st.set_page_config(
-    page_title="🌍 Chethan AI Travel Planner",
+    page_title="🌍 Travel Planner Agentic Application",
     page_icon="🌍",
     layout="wide",
-)
-
-# Custom CSS for chat bubbles
-st.markdown(
-    """
-    <style>
-    .user-bubble {
-        background-color: #DCF8C6;
-        padding: 10px 15px;
-        border-radius: 10px;
-        margin: 5px 0;
-        max-width: 80%;
-        float: right;
-        clear: both;
-    }
-    .bot-bubble {
-        background-color: #F1F0F0;
-        padding: 10px 15px;
-        border-radius: 10px;
-        margin: 5px 0;
-        max-width: 80%;
-        float: left;
-        clear: both;
-    }
-    .timestamp {
-        font-size: 0.8em;
-        color: gray;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
+    initial_sidebar_state="expanded",
 )
 
 # Sidebar info
 with st.sidebar:
-    st.markdown("## 🌍 AI Travel Planner")
+    st.header("ℹ️ About")
     st.write(
         """
-        🧳 Your personal **AI-powered Travel Agent**.  
-        Type in your trip request, e.g.  
-        *Plan a 3-day trip to Coorg for 2 people under ₹10,000*.  
+        Welcome to **Chethan's AI Travel Planner** ✈️🌍  
         
-        ✨ The AI will generate a full itinerary.  
+        👉 Enter your trip query (e.g., *Plan a 5-day trip to Goa for 3 people under ₹20,000*).  
+        The AI will generate a customized itinerary.  
+
+        You can submit multiple queries — results are saved in history.
         """
     )
     st.markdown("---")
-    st.caption("Built with ❤️ by Chethan's Travel Agent")
+    st.caption("🚀 Built with Streamlit + FastAPI")
 
-st.title("🌍 Travel Planner Agentic Application")
+# Main title
+st.title("🌍 AI Travel Planner")
 
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history (chat-like format)
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"<div class='user-bubble'>{msg['content']}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='bot-bubble'>{msg['content']}</div>", unsafe_allow_html=True)
+# Display previous travel plans
+if st.session_state.messages:
+    st.subheader("📜 Previous Plans")
+    for idx, msg in enumerate(st.session_state.messages):
+        st.markdown(msg, unsafe_allow_html=True)
+        st.markdown("---")
 
-# Input at the bottom
-st.markdown("## 💬 Ask me about your trip")
-user_input = st.chat_input("e.g. Plan a trip to Goa for 5 days")
+# Input form
+st.subheader("💬 Tell me about your trip")
+with st.form(key="query_form", clear_on_submit=True):
+    user_input = st.text_input("Your Query", placeholder="e.g. Plan a trip to Coorg for 4 days under ₹15,000")
+    submit_button = st.form_submit_button("Generate Plan")
 
-if user_input:
-    # Show user message
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    st.markdown(f"<div class='user-bubble'>{user_input}</div>", unsafe_allow_html=True)
-
+# Handle query
+if submit_button and user_input.strip():
     try:
-        with st.spinner("🤖 Bot is preparing your travel plan..."):
+        with st.spinner("🤖 Thinking... Generating your travel plan..."):
             payload = {"question": user_input}
             response = requests.post(f"{BASE_URL}/query", json=payload, timeout=60)
 
         if response.status_code == 200:
             answer = response.json().get("answer", "⚠️ No answer returned.")
-            plan = f"""
-**🗓 Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}  
-**✍️ Created by:** Chethan's Travel Agent  
+            markdown_content = f"""
+# 🌍 AI Travel Plan  
+
+**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}  
+**Created by:** Chethan's Travel Agent  
 
 ---
 
@@ -97,18 +70,17 @@ if user_input:
 
 ---
 
-*🔎 Please verify all details (prices, hours, requirements) before your trip.*
+*🔎 Please verify prices, timings, and requirements before booking.*
 """
-            st.session_state.messages.append({"role": "bot", "content": plan})
-            st.markdown(f"<div class='bot-bubble'>{plan}</div>", unsafe_allow_html=True)
-
+            st.success("✅ Travel plan generated!")
+            st.markdown(markdown_content)
+            # Save to history
+            st.session_state.messages.append(markdown_content)
         else:
-            error_msg = f"❌ Bot failed to respond: {response.text}"
-            st.session_state.messages.append({"role": "bot", "content": error_msg})
-            st.error(error_msg)
+            st.error(f"❌ Bot failed to respond. Status: {response.status_code}\n\n{response.text}")
 
     except requests.exceptions.Timeout:
-        st.error("⚠️ Request timed out. Please try again later.")
+        st.error("⚠️ The request timed out. Please try again later.")
     except requests.exceptions.ConnectionError:
         st.error("⚠️ Could not connect to backend. Please check if the API is live.")
     except Exception as e:
